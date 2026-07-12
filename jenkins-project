@@ -1,0 +1,132 @@
+pipeline {
+
+    agent any
+
+    environment {
+
+        VM_IP = "YOUR_PUBLIC_IP"
+
+    }
+
+    stages {
+
+        stage('Checkout') {
+
+            steps {
+
+                checkout scm
+
+            }
+
+        }
+
+        stage('Build') {
+
+            steps {
+
+                sh 'mvn clean package'
+
+            }
+
+        }
+
+        stage('Test') {
+
+            steps {
+
+                sh 'mvn test'
+
+            }
+
+        }
+
+        stage('Archive WAR') {
+
+            steps {
+
+                archiveArtifacts artifacts: '**/*.war'
+
+            }
+
+        }
+
+        stage('Terraform Init') {
+
+            steps {
+
+                dir('terraform-demo') {
+
+                    sh 'terraform init'
+
+                }
+
+            }
+
+        }
+
+        stage('Terraform Validate') {
+
+            steps {
+
+                dir('terraform-demo') {
+
+                    sh 'terraform validate'
+
+                }
+
+            }
+
+        }
+
+        stage('Terraform Plan') {
+
+            steps {
+
+                dir('terraform-demo') {
+
+                    sh 'terraform plan'
+
+                }
+
+            }
+
+        }
+
+        stage('Terraform Apply') {
+
+            steps {
+
+                dir('terraform-demo') {
+
+                    sh 'terraform apply -auto-approve'
+
+                }
+
+            }
+
+        }
+
+        stage('Deploy using Ansible') {
+
+            steps {
+
+                sh 'ansible-playbook -i hosts deploy.yml'
+
+            }
+
+        }
+
+        stage('Health Check') {
+
+            steps {
+
+                sh '''
+                curl http://${VM_IP}:8080/Amazon/ || exit 1
+                '''
+            }
+
+        }
+
+    }
+
+}
